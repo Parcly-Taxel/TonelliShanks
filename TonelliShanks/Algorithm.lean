@@ -119,26 +119,6 @@ method tonelliShanks (p : ℕ) (hp : p.Prime ∧ Odd p) (n : ZMod p) return (rou
       r := r * b
     return some r
 
-#eval (tonelliShanks 41 (by decide) 5).run -- example given on Wikipedia, 28
-#eval (tonelliShanks 41 (by decide) 4).run -- 2
-#eval (tonelliShanks 41 (by decide) 3).run -- none
-#eval (tonelliShanks 41 (by decide) 2).run -- 17
-#eval (tonelliShanks 41 (by decide) 1).run -- 1
-#eval (tonelliShanks 41 (by decide) 0).run -- 0
-#eval (tonelliShanks 41 (by decide) (-1)).run -- 32
-
-#eval (tonelliShanks 137 (by decide) 2).run -- 106
-#eval (tonelliShanks 137 (by decide) 3).run -- none
-#eval (tonelliShanks 137 (by decide) 5).run -- none
-#eval (tonelliShanks 137 (by decide) 7).run -- 12
-#eval (tonelliShanks 137 (by decide) 11).run -- 55
-
-#eval (tonelliShanks 103 (by decide) 2).run -- 38
-#eval (tonelliShanks 103 (by decide) 3).run -- none
-#eval (tonelliShanks 103 (by decide) 5).run -- none
-#eval (tonelliShanks 103 (by decide) 7).run -- 25
-#eval (tonelliShanks 103 (by decide) 11).run -- none
-
 section Subgoals
 
 variable {p q s : ℕ} {n : ZMod p} (hp : Nat.Prime p ∧ Odd p) (hq₁ : q * 2 ^ s = p - 1) (hq₂ : Odd q)
@@ -211,3 +191,57 @@ prove_correct tonelliShanks by
   loom_solve
   · exact subgoal_2 invariant_2 if_pos
   · rw [← pow_mul, Nat.div_mul_cancel (by grind), pow_succ]
+
+/-- info: DivM.res (some 28) -/
+#guard_msgs in
+#eval (tonelliShanks 41 (by decide) 5).run
+/-- info: DivM.res (some 2) -/
+#guard_msgs in
+#eval (tonelliShanks 41 (by decide) 4).run
+/-- info: DivM.res none -/
+#guard_msgs in
+#eval (tonelliShanks 41 (by decide) 3).run
+/-- info: DivM.res (some 17) -/
+#guard_msgs in
+#eval (tonelliShanks 41 (by decide) 2).run
+/-- info: DivM.res (some 1) -/
+#guard_msgs in
+#eval (tonelliShanks 41 (by decide) 1).run
+/-- info: DivM.res (some 0) -/
+#guard_msgs in
+#eval (tonelliShanks 41 (by decide) 0).run
+/-- info: DivM.res (some 32) -/
+#guard_msgs in
+#eval (tonelliShanks 41 (by decide) (-1)).run
+
+/-- info: DivM.res (some 106) -/
+#guard_msgs in
+#eval (tonelliShanks 137 (by decide) 2).run
+/-- info: DivM.res none -/
+#guard_msgs in
+#eval (tonelliShanks 137 (by decide) 3).run
+/-- info: DivM.res none -/
+#guard_msgs in
+#eval (tonelliShanks 137 (by decide) 5).run
+/-- info: DivM.res (some 12) -/
+#guard_msgs in
+#eval (tonelliShanks 137 (by decide) 7).run
+/-- info: DivM.res (some 55) -/
+#guard_msgs in
+#eval (tonelliShanks 137 (by decide) 11).run
+
+/-- info: DivM.res (some 38) -/
+#guard_msgs in
+#eval (tonelliShanks 103 (by decide) 2).run
+/-- info: DivM.res none -/
+#guard_msgs in
+#eval (tonelliShanks 103 (by decide) 3).run
+/-- info: DivM.res none -/
+#guard_msgs in
+#eval (tonelliShanks 103 (by decide) 5).run
+/-- info: DivM.res (some 25) -/
+#guard_msgs in
+#eval (tonelliShanks 103 (by decide) 7).run
+/-- info: DivM.res none -/
+#guard_msgs in
+#eval (tonelliShanks 103 (by decide) 11).run

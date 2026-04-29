@@ -18,10 +18,10 @@ The algorithm may be run by issuing the following command at any point in `Algor
 #eval (tonelliShanks p hp n).run
 ```
 
-The result is shown in the Lean Infoview. For example, to find the square roots of 2 and 3 modulo 103, type
+The result is shown in the Lean Infoview. For example, to find the square roots of 2 and 5 modulo 97, type
 ```lean
-#eval (tonelliShanks 103 (by decide) 2).run -- DivM.res (some 38); 38^2 % 103 = 2
-#eval (tonelliShanks 103 (by decide) 3).run -- DivM.res (none); 3 has no square root modulo 103
+#eval (tonelliShanks 97 (by decide) 2).run -- DivM.res (some 83); 83^2 % 97 = 2
+#eval (tonelliShanks 97 (by decide) 5).run -- DivM.res none; 5 has no square root modulo 97
 ```
 
 (`decide` is a convenient inline way to prove that _small_ numbers are odd primes. For larger numbers it recurses too deeply and an external proof needs to be provided.)
