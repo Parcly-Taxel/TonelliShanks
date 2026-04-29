@@ -10,6 +10,20 @@ lemma Nat.Prime.odd_iff {p : ℕ} (hp : Prime p) : Odd p ↔ 3 ≤ p := by
   have := hp.two_le
   grind
 
+lemma ZMod.euler_criterion' {p : ℕ} {a : ZMod p} (hp : p.Prime ∧ Odd p) :
+    ¬IsSquare a ↔ a ^ (p / 2) = -1 := by
+  rw [hp.1.odd_iff] at hp
+  have : Fact (1 < p) := ⟨by grind⟩
+  obtain rfl | ha := eq_or_ne a 0
+  · rw [zero_pow (by grind)]
+    simp
+  · have : Fact p.Prime := ⟨hp.1⟩
+    have nnp : (-1 : ZMod p) ≠ 1 := @ZMod.neg_one_ne_one p ⟨by grind⟩
+    rw [euler_criterion _ ha]
+    obtain h | h := ZMod.pow_div_two_eq_neg_one_or_one p ha
+    · simp [h, nnp.symm]
+    · simp [h, nnp]
+
 lemma exists_nonresidue {p : ℕ} (hp : p.Prime ∧ Odd p) : ∃ z : ZMod p, ¬IsSquare z := by
   have : NeZero p := ⟨hp.1.ne_zero⟩
   rw [hp.1.odd_iff] at hp
@@ -23,15 +37,29 @@ lemma exists_nonresidue {p : ℕ} (hp : p.Prime ∧ Odd p) : ∃ z : ZMod p, ¬I
   refine ⟨z, ?_⟩
   rwa [isSquare_iff_exists_sq, not_exists]
 
-/-- Return the smallest quadratic nonresidue modulo an odd prime `p`.
-This is [OEIS A053760](https://oeis.org/A053760). -/
-def qnr (p : ℕ) (hp : p.Prime ∧ Odd p) : ℕ :=
-  letI : NeZero p := ⟨hp.1.ne_zero⟩
-  ((Finset.range p).filter fun z : ℕ ↦ ¬IsSquare (z : ZMod p)).min' (by
-    obtain ⟨q, hq⟩ := exists_nonresidue hp
-    refine ⟨q.val, ?_⟩
-    rw [Finset.mem_filter, Finset.mem_range, ZMod.natCast_zmod_val]
-    exact ⟨q.val_lt, hq⟩)
+method findNonresidue (p : ℕ) (hp : p.Prime ∧ Odd p) return (z : ZMod p)
+  ensures ¬IsSquare z
+  do
+    let mut i := 0
+    while (i : ZMod p) ^ (p / 2) ≠ -1 ∧ i < p
+      invariant ∀ (j : ℕ), j < i → (j : ZMod p) ^ (p / 2) ≠ -1
+      invariant i ≤ p
+    do
+      i := i + 1
+    return i
+
+prove_correct findNonresidue by
+  loom_solve
+  have : NeZero p := ⟨hp.1.ne_zero⟩
+  have inp : i ≠ p := by
+    contrapose! invariant_1
+    obtain ⟨z, hz⟩ := exists_nonresidue hp
+    subst i
+    refine ⟨z.val, z.val_lt, ?_⟩
+    rwa [← ZMod.euler_criterion' hp, ZMod.natCast_zmod_val]
+  replace invariant_2 := invariant_2.lt_of_ne inp
+  simp_rw [invariant_2, and_true, not_ne_iff] at done_1
+  rwa [ZMod.euler_criterion' hp]
 
 method findQS (n : ℕ) return (qs : ℕ × ℕ)
   ensures qs.1 * 2 ^ qs.2 = n ∧ Odd qs.1
@@ -46,13 +74,6 @@ method findQS (n : ℕ) return (qs : ℕ × ℕ)
 prove_correct findQS by
   loom_solve
   rwa [pow_succ', ← mul_assoc, Nat.div_mul_cancel (by grind)]
-
-lemma not_isSquare_qnr {p : ℕ} (hp : p.Prime ∧ Odd p) : ¬IsSquare (qnr p hp : ZMod p) := by
-  unfold qnr
-  generalize_proofs nzp nem
-  have := Finset.min'_mem _ nem
-  rw [Finset.mem_filter] at this
-  exact this.2
 
 method findExponent (p : ℕ) (t : ZMod p) (m : ℕ) return (i : ℕ)
   require 0 < m
@@ -80,7 +101,8 @@ method tonelliShanks (p : ℕ) (hp : p.Prime ∧ Odd p) (n : ZMod p) return (rou
     if n = 0 then return some 0
     let ⟨q, s⟩ ← findQS (p - 1)
     let mut m := s
-    let mut c : ZMod p := (qnr p hp) ^ q
+    let mut c ← findNonresidue p hp
+    c := c ^ q
     let mut t := n ^ q
     let mut r := n ^ ((q + 1) / 2)
     if t ^ 2 ^ (m - 1) = -1 then return none
@@ -103,6 +125,7 @@ method tonelliShanks (p : ℕ) (hp : p.Prime ∧ Odd p) (n : ZMod p) return (rou
 #eval (tonelliShanks 41 (by decide) 2).run -- 17
 #eval (tonelliShanks 41 (by decide) 1).run -- 1
 #eval (tonelliShanks 41 (by decide) 0).run -- 0
+#eval (tonelliShanks 41 (by decide) (-1)).run -- 32
 
 #eval (tonelliShanks 137 (by decide) 2).run -- 106
 #eval (tonelliShanks 137 (by decide) 3).run -- none
@@ -143,15 +166,8 @@ lemma subgoal_1 (hn₁ : n ≠ 0) (hn₂ : (n ^ q) ^ 2 ^ (s - 1) = -1) : ¬IsSqu
   exact @ZMod.neg_one_ne_one p ⟨by grind [Nat.Prime.odd_iff]⟩
 
 @[grind]
-lemma subgoal_5 : (qnr p hp ^ q : ZMod p) ^ 2 ^ (s - 1) = -1 := by
-  have : Fact p.Prime := ⟨hp.1⟩
-  rw [pow_rewrite hp hq₁ hq₂]
-  have not0 := not_isSquare_qnr hp
-  have znz : (qnr p hp : ZMod p) ≠ 0 := by
-    by_contra! h
-    simp [h] at not0
-  rw [ZMod.euler_criterion _ znz] at not0
-  exact (ZMod.pow_div_two_eq_neg_one_or_one p znz).resolve_left not0
+lemma subgoal_5 {z : ZMod p} (hz : ¬IsSquare z) : (z ^ q) ^ 2 ^ (s - 1) = -1 := by
+  rwa [pow_rewrite hp hq₁ hq₂, ← ZMod.euler_criterion' hp]
 
 @[grind]
 lemma subgoal_6 (hn₁ : n ≠ 0) (hn₂ : (n ^ q) ^ 2 ^ (s - 1) ≠ -1) : (n ^ q) ^ 2 ^ (s - 1) = 1 := by
@@ -177,7 +193,7 @@ lemma subgoal_3 {c t : ZMod p} {m i : ℕ} (invar₁ : c ^ 2 ^ (m - 1) = -1) (hi
 
 @[grind]
 lemma subgoal_4 {c t : ZMod p} {m i : ℕ} (hp : p.Prime ∧ Odd p)
-    (invar₁ : c ^ 2 ^ (m - 1) = -1) (invar₂ : t ^ 2 ^ (m - 1) = 1) (hi : i < m)
+    (invar₁ : c ^ 2 ^ (m - 1) = -1) (hi : i < m)
     (ht₁ : t ^ 2 ^ i = 1) (ht₂ : t ≠ 1) (ht₃ : ∀ j < i, t ^ 2 ^ j ≠ 1) :
     (t * (c ^ 2 ^ (m - i - 1)) ^ 2) ^ 2 ^ (i - 1) = 1 := by
   have : Fact p.Prime := ⟨hp.1⟩
@@ -190,6 +206,8 @@ lemma subgoal_4 {c t : ZMod p} {m i : ℕ} (hp : p.Prime ∧ Odd p)
 
 end Subgoals
 
+set_option maxHeartbeats 1500000 in
 prove_correct tonelliShanks by
   loom_solve
-  rw [← pow_mul, Nat.div_mul_cancel (by grind), pow_succ]
+  · exact subgoal_2 invariant_2 if_pos
+  · rw [← pow_mul, Nat.div_mul_cancel (by grind), pow_succ]
