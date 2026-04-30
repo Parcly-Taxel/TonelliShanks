@@ -272,3 +272,6 @@ prove_correct tonelliShanks by
 /-- info: DivM.res (some 2147483648) -/
 #guard_msgs in
 #eval (tonelliShanks (2 ^ 61 - 1) 2).run
+/-- info: DivM.res (some 14962902794025095) -/
+#guard_msgs in
+#eval (tonelliShanks (2 ^ 61 + 2 ^ 51 + 1) 2).run
