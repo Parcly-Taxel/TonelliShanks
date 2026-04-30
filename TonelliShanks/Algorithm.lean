@@ -1,7 +1,7 @@
 import Mathlib.NumberTheory.LegendreSymbol.Basic
 import Velvet.Std
 
-set_option loom.semantics.termination "partial"
+set_option loom.semantics.termination "total"
 set_option loom.semantics.choice "demonic"
 
 /-- I added this lemma to mathlib in https://github.com/leanprover-community/mathlib4/pull/36799 -/
@@ -44,6 +44,7 @@ method findNonresidue (p : ℕ) (hp : p.Prime ∧ Odd p) return (z : ZMod p)
     while (i : ZMod p) ^ (p / 2) ≠ -1 ∧ i < p
       invariant ∀ (j : ℕ), j < i → (j : ZMod p) ^ (p / 2) ≠ -1
       invariant i ≤ p
+      decreasing p - i
     do
       i := i + 1
     return i
@@ -62,18 +63,23 @@ prove_correct findNonresidue by
   rwa [ZMod.euler_criterion' hp]
 
 method findQS (n : ℕ) return (qs : ℕ × ℕ)
-  ensures qs.1 * 2 ^ qs.2 = n ∧ Odd qs.1
+  ensures qs.1 * 2 ^ qs.2 = n ∧ (Odd qs.1 ∨ qs.1 = 0)
   do
     let mut qs := (n, 0)
+    if qs.1 = 0 then return qs
     while Even qs.1
       invariant qs.1 * 2 ^ qs.2 = n
+      decreasing qs.1
     do
       qs := (qs.1 / 2, qs.2 + 1)
     return qs
 
 prove_correct findQS by
   loom_solve
-  rwa [pow_succ', ← mul_assoc, Nat.div_mul_cancel (by grind)]
+  · rwa [pow_succ', ← mul_assoc, Nat.div_mul_cancel (by grind)]
+  · apply Nat.bitwise_rec_lemma
+    contrapose! if_neg
+    simp_all
 
 method findExponent (p : ℕ) (t : ZMod p) (m : ℕ) return (i : ℕ)
   require 0 < m
@@ -86,6 +92,7 @@ method findExponent (p : ℕ) (t : ZMod p) (m : ℕ) return (i : ℕ)
       invariant u = t ^ 2 ^ i
       invariant i < m
       invariant ∀ j < i, t ^ 2 ^ j ≠ 1
+      decreasing m - i
     do
       u := u ^ 2
       i := i + 1
@@ -110,6 +117,7 @@ method tonelliShanks (p : ℕ) (hp : p.Prime ∧ Odd p) (n : ZMod p) return (rou
       invariant c ^ 2 ^ (m - 1) = -1
       invariant t ^ 2 ^ (m - 1) = 1
       invariant r ^ 2 = t * n
+      decreasing m
     do
       let i ← findExponent p t m
       let b := c ^ 2 ^ (m - i - 1)
@@ -124,6 +132,15 @@ section Subgoals
 variable {p q s : ℕ} {n : ZMod p} (hp : Nat.Prime p ∧ Odd p) (hq₁ : q * 2 ^ s = p - 1) (hq₂ : Odd q)
 
 section
+
+include hp hq₁ in
+@[grind]
+lemma odd_of_odd_or_eq_zero (hq₂ : Odd q ∨ q = 0) : Odd q := by
+  apply hq₂.resolve_right
+  contrapose! hp
+  intro pp
+  replace pp := pp.two_le
+  grind
 
 include hp hq₁ hq₂
 
@@ -190,7 +207,9 @@ set_option maxHeartbeats 1500000 in
 prove_correct tonelliShanks by
   loom_solve
   · exact subgoal_2 invariant_2 if_pos
-  · rw [← pow_mul, Nat.div_mul_cancel (by grind), pow_succ]
+  · subst i_2
+    have := odd_of_odd_or_eq_zero hp a a_1
+    rw [← pow_mul, Nat.div_mul_cancel (by grind), pow_succ]
 
 /-- info: DivM.res (some 28) -/
 #guard_msgs in
