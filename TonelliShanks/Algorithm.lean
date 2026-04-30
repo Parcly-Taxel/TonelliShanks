@@ -37,7 +37,9 @@ lemma exists_nonresidue {p : ℕ} (hp : p.Prime ∧ Odd p) : ∃ z : ZMod p, ¬I
   refine ⟨z, ?_⟩
   rwa [isSquare_iff_exists_sq, not_exists]
 
-method findNonresidue (p : ℕ) (hp : p.Prime ∧ Odd p) return (z : ZMod p)
+method findNonresidue (p : ℕ) return (z : ZMod p)
+  require p.Prime
+  require Odd p
   ensures ¬IsSquare z
   do
     let mut i := 0
@@ -51,16 +53,16 @@ method findNonresidue (p : ℕ) (hp : p.Prime ∧ Odd p) return (z : ZMod p)
 
 prove_correct findNonresidue by
   loom_solve
-  have : NeZero p := ⟨hp.1.ne_zero⟩
+  have : NeZero p := ⟨require_2.ne_zero⟩
   have inp : i ≠ p := by
     contrapose! invariant_1
-    obtain ⟨z, hz⟩ := exists_nonresidue hp
+    obtain ⟨z, hz⟩ := exists_nonresidue ⟨require_2, require_1⟩
     subst i
     refine ⟨z.val, z.val_lt, ?_⟩
-    rwa [← ZMod.euler_criterion' hp, ZMod.natCast_zmod_val]
+    rwa [← ZMod.euler_criterion' ⟨require_2, require_1⟩, ZMod.natCast_zmod_val]
   replace invariant_2 := invariant_2.lt_of_ne inp
   simp_rw [invariant_2, and_true, not_ne_iff] at done_1
-  rwa [ZMod.euler_criterion' hp]
+  rwa [ZMod.euler_criterion' ⟨require_2, require_1⟩]
 
 method findQS (n : ℕ) return (qs : ℕ × ℕ)
   ensures qs.1 * 2 ^ qs.2 = n ∧ (Odd qs.1 ∨ qs.1 = 0)
@@ -102,13 +104,15 @@ prove_correct findExponent by
   loom_solve
   rw [invariant_1, ← pow_mul, pow_succ]
 
-method tonelliShanks (p : ℕ) (hp : p.Prime ∧ Odd p) (n : ZMod p) return (rout : Option (ZMod p))
+method tonelliShanks (p : ℕ) (n : ZMod p) return (rout : Option (ZMod p))
+  require p.Prime
+  require Odd p
   ensures rout = none ∧ ¬IsSquare n ∨ ∃ r, rout = some r ∧ r ^ 2 = n
   do
     if n = 0 then return some 0
     let ⟨q, s⟩ ← findQS (p - 1)
     let mut m := s
-    let mut c ← findNonresidue p hp
+    let mut c ← findNonresidue p
     c := c ^ q
     let mut t := n ^ q
     let mut r := n ^ ((q + 1) / 2)
@@ -208,59 +212,63 @@ prove_correct tonelliShanks by
   loom_solve
   · exact subgoal_2 invariant_2 if_pos
   · subst i_2
-    have := odd_of_odd_or_eq_zero hp a a_1
+    have := odd_of_odd_or_eq_zero ⟨require_2, require_1⟩ a a_1
     rw [← pow_mul, Nat.div_mul_cancel (by grind), pow_succ]
 
 /-- info: DivM.res (some 28) -/
 #guard_msgs in
-#eval (tonelliShanks 41 (by decide) 5).run
+#eval (tonelliShanks 41 5).run
 /-- info: DivM.res (some 2) -/
 #guard_msgs in
-#eval (tonelliShanks 41 (by decide) 4).run
+#eval (tonelliShanks 41 4).run
 /-- info: DivM.res none -/
 #guard_msgs in
-#eval (tonelliShanks 41 (by decide) 3).run
+#eval (tonelliShanks 41 3).run
 /-- info: DivM.res (some 17) -/
 #guard_msgs in
-#eval (tonelliShanks 41 (by decide) 2).run
+#eval (tonelliShanks 41 2).run
 /-- info: DivM.res (some 1) -/
 #guard_msgs in
-#eval (tonelliShanks 41 (by decide) 1).run
+#eval (tonelliShanks 41 1).run
 /-- info: DivM.res (some 0) -/
 #guard_msgs in
-#eval (tonelliShanks 41 (by decide) 0).run
+#eval (tonelliShanks 41 0).run
 /-- info: DivM.res (some 32) -/
 #guard_msgs in
-#eval (tonelliShanks 41 (by decide) (-1)).run
+#eval (tonelliShanks 41 (-1)).run
 
 /-- info: DivM.res (some 106) -/
 #guard_msgs in
-#eval (tonelliShanks 137 (by decide) 2).run
+#eval (tonelliShanks 137 2).run
 /-- info: DivM.res none -/
 #guard_msgs in
-#eval (tonelliShanks 137 (by decide) 3).run
+#eval (tonelliShanks 137 3).run
 /-- info: DivM.res none -/
 #guard_msgs in
-#eval (tonelliShanks 137 (by decide) 5).run
+#eval (tonelliShanks 137 5).run
 /-- info: DivM.res (some 12) -/
 #guard_msgs in
-#eval (tonelliShanks 137 (by decide) 7).run
+#eval (tonelliShanks 137 7).run
 /-- info: DivM.res (some 55) -/
 #guard_msgs in
-#eval (tonelliShanks 137 (by decide) 11).run
+#eval (tonelliShanks 137 11).run
 
 /-- info: DivM.res (some 38) -/
 #guard_msgs in
-#eval (tonelliShanks 103 (by decide) 2).run
+#eval (tonelliShanks 103 2).run
 /-- info: DivM.res none -/
 #guard_msgs in
-#eval (tonelliShanks 103 (by decide) 3).run
+#eval (tonelliShanks 103 3).run
 /-- info: DivM.res none -/
 #guard_msgs in
-#eval (tonelliShanks 103 (by decide) 5).run
+#eval (tonelliShanks 103 5).run
 /-- info: DivM.res (some 25) -/
 #guard_msgs in
-#eval (tonelliShanks 103 (by decide) 7).run
+#eval (tonelliShanks 103 7).run
 /-- info: DivM.res none -/
 #guard_msgs in
-#eval (tonelliShanks 103 (by decide) 11).run
+#eval (tonelliShanks 103 11).run
+
+/-- info: DivM.res (some 2147483648) -/
+#guard_msgs in
+#eval (tonelliShanks (2 ^ 61 - 1) 2).run
